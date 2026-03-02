@@ -14,7 +14,6 @@ docs/
 .env
 
 # Dependencies (installed via `forge install`)
-lib/
 
 # System files
 system_map/
