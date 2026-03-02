@@ -248,7 +248,6 @@ contract NectarPool is INectarPool, ReentrancyGuard {
         // Vault will call supplyToAave internally
         // (The vault has the approve + supply logic)
     }
-  
 
     //  Notics to me "VRFModule, i just sumulated it, i have not implemented the automation"
     /// @notice Called by Keeper at end of yield period. Graceful if Aave is locked.

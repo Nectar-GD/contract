@@ -70,12 +70,7 @@ contract Deploy is Script {
         console.log("NectarFactory:", address(factory));
 
         // Vault with real Factory address
-        NectarVault vault = new NectarVault(
-            address(factory),
-            address(aavePool),
-            address(swapRouter),
-            address(usdc)
-        );
+        NectarVault vault = new NectarVault(address(factory), address(aavePool), address(swapRouter), address(usdc));
         console.log("NectarVault:", address(vault));
 
         // VRF Module with real Vault address

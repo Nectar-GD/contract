@@ -22,8 +22,7 @@ contract MockVRFModule {
     ///         The vault's withdrawAndReturn sends funds directly to the pool.
     function requestDraw(address pool) external {
         // 1. Get principal info from vault
-        (bool okPrin, bytes memory prinData) =
-            vault.staticcall(abi.encodeWithSignature("getPrincipal(address)", pool));
+        (bool okPrin, bytes memory prinData) = vault.staticcall(abi.encodeWithSignature("getPrincipal(address)", pool));
         uint256 principal = okPrin ? abi.decode(prinData, (uint256)) : 0;
 
         // 2. Check if deposit is active
@@ -59,9 +58,8 @@ contract MockVRFModule {
         uint256 randomWord = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, pool)));
 
         // 5. Call fulfillDraw on the pool with principal and estimated yield
-        (bool ok,) = pool.call(
-            abi.encodeWithSignature("fulfillDraw(uint256,uint256,uint256)", randomWord, principal, yield)
-        );
+        (bool ok,) =
+            pool.call(abi.encodeWithSignature("fulfillDraw(uint256,uint256,uint256)", randomWord, principal, yield));
         require(ok, "MockVRF: fulfillDraw failed");
     }
 }
