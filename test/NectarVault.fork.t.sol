@@ -73,6 +73,7 @@ contract NectarVaultForkTest is Test {
 
         // We need to create a pool config — use minimal values
         INectarPool.PoolConfig memory cfg = INectarPool.PoolConfig({
+            name: "Fork Test Pool",
             token: token,
             targetAmount: 1000e6, // 1000 USDC (6 decimals)
             maxMembers: 6,
@@ -179,6 +180,7 @@ contract NectarVaultForkTest is Test {
 
         vm.startPrank(creator2);
         INectarPool.PoolConfig memory cfg2 = INectarPool.PoolConfig({
+            name: "Fork Test Pool 2",
             token: USDC,
             targetAmount: 2000e6,
             maxMembers: 6,

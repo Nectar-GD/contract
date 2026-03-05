@@ -33,6 +33,7 @@ interface INectarPool {
     // ─── Structs ─────────────────────────────────────────────────────────────
 
     struct PoolConfig {
+        string name; // Human-readable pool name for UI display
         address token; // G$ or USDC
         uint256 targetAmount; // Pool's total savings goal
         uint16 maxMembers; // Max participants (3–50)
@@ -76,8 +77,9 @@ interface INectarPool {
         address identityContract
     ) external;
 
-    /// @notice Join the pool and make the first contribution immediately
-    function joinPool() external;
+    /// @notice Join the pool and make the first contribution immediately.
+    /// @param maxRate Maximum per-cycle rate the caller will accept (0 = no limit).
+    function joinPool(uint256 maxRate) external;
 
     /// @notice Deposit exactly the assigned amount for the current cycle
     function deposit(uint256 amount) external;

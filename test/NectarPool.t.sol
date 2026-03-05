@@ -64,6 +64,7 @@ contract NectarPoolTest is Test {
 
     function _createWeeklyPool() internal returns (NectarPool pool) {
         INectarPool.PoolConfig memory cfg = INectarPool.PoolConfig({
+            name: "Test Weekly Pool",
             token: address(token),
             targetAmount: TARGET,
             maxMembers: MEMBERS,
@@ -139,7 +140,7 @@ contract NectarPoolTest is Test {
         uint256 expectedRate = NectarMath.baseContribution(NectarMath.perMemberTotal(TARGET, MEMBERS), CYCLES); // 200 USDC
 
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
 
         assertEq(pool.activeMembers(), 1);
         (,,, uint256 paid,,,) = _unpackMember(pool, alice);
@@ -155,17 +156,17 @@ contract NectarPoolTest is Test {
 
         vm.prank(stranger);
         vm.expectRevert("NectarPool: unverified identity");
-        pool.joinPool();
+        pool.joinPool(0);
     }
 
     function test_JoinPool_RejectsDoubleJoin() public {
         NectarPool pool = _createWeeklyPool();
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
 
         vm.prank(alice);
         vm.expectRevert("NectarPool: already a member");
-        pool.joinPool();
+        pool.joinPool(0);
     }
 
     function test_JoinPool_RejectsAfterEnrollmentWindowClose() public {
@@ -175,7 +176,7 @@ contract NectarPoolTest is Test {
 
         vm.prank(alice);
         vm.expectRevert("NectarPool: enrollment window closed");
-        pool.joinPool();
+        pool.joinPool(0);
     }
 
     function test_JoinPool_LateJoiner_RecalculatedRate() public {
@@ -185,7 +186,7 @@ contract NectarPoolTest is Test {
         vm.warp(block.timestamp + 3 weeks);
 
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
 
         // Expected: 2000e18 / 7 remaining cycles
         uint256 expectedRate = NectarMath.lateJoinerRate(NectarMath.perMemberTotal(TARGET, MEMBERS), 7);
@@ -200,7 +201,7 @@ contract NectarPoolTest is Test {
 
         vm.prank(alice);
         vm.expectRevert(); // Either window or 2x cap
-        pool.joinPool();
+        pool.joinPool(0);
     }
 
     function test_JoinPool_Blocked_ThreeCycleFloor() public {
@@ -210,7 +211,7 @@ contract NectarPoolTest is Test {
 
         vm.prank(alice);
         vm.expectRevert();
-        pool.joinPool();
+        pool.joinPool(0);
     }
 
     // ─── 3. Deposit Lifecycle Tests ───────────────────────────────────────────
@@ -220,7 +221,7 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18; // 200 USDC base rate
 
         vm.prank(alice);
-        pool.joinPool(); // Cycle 1 deposit done at join
+        pool.joinPool(0); // Cycle 1 deposit done at join
 
         // Warp to cycle 2
         vm.warp(block.timestamp + 1 weeks);
@@ -236,7 +237,7 @@ contract NectarPoolTest is Test {
     function test_Deposit_RejectsWrongAmount() public {
         NectarPool pool = _createWeeklyPool();
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
 
         vm.warp(block.timestamp + 1 weeks);
         vm.prank(alice);
@@ -247,7 +248,7 @@ contract NectarPoolTest is Test {
     function test_Deposit_RejectsDuplicateInSameCycle() public {
         NectarPool pool = _createWeeklyPool();
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
 
         // Try to pay cycle 1 again immediately (still in cycle 1)
         vm.prank(alice);
@@ -262,7 +263,7 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18;
 
         vm.prank(alice);
-        pool.joinPool(); // Pays cycle 1
+        pool.joinPool(0); // Pays cycle 1
 
         // Pay cycle 2 normally
         vm.warp(pool.poolStartTime() + 1 * WEEKLY);
@@ -285,7 +286,7 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18;
 
         vm.prank(alice);
-        pool.joinPool(); // cycle 1, lastPaidCycle = 1
+        pool.joinPool(0); // cycle 1, lastPaidCycle = 1
 
         // Miss 2 consecutive cycles: last paid=1, warp to cycle 5 (gap=4 > 2 → evict)
         vm.warp(pool.poolStartTime() + 4 * WEEKLY + 1);
@@ -303,7 +304,7 @@ contract NectarPoolTest is Test {
         uint256 balanceBefore = token.balanceOf(alice);
 
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
 
         vm.prank(alice);
         pool.emergencyWithdraw();
@@ -316,7 +317,7 @@ contract NectarPoolTest is Test {
     function test_EmergencyWithdraw_CannotWithdrawTwice() public {
         NectarPool pool = _createWeeklyPool();
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(alice);
         pool.emergencyWithdraw();
 
@@ -331,9 +332,9 @@ contract NectarPoolTest is Test {
         // 6-member pool, only 2 join (below 50% = 3 minimum)
         NectarPool pool = _createWeeklyPool();
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
 
         // Skip entire saving period
         vm.warp(block.timestamp + 10 weeks + 1);
@@ -346,11 +347,11 @@ contract NectarPoolTest is Test {
         NectarPool pool = _createWeeklyPool();
         // Join 3 members (50% of 6 = minimum fill)
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(carol);
-        pool.joinPool();
+        pool.joinPool(0);
 
         // Pay all 10 cycles for all members
         _payAllCycles(pool, alice, 200e18, 10);
@@ -383,6 +384,7 @@ contract NectarPoolTest is Test {
 
     function _baseConfig() internal view returns (INectarPool.PoolConfig memory) {
         return INectarPool.PoolConfig({
+            name: "Base Config Pool",
             token: address(token),
             targetAmount: TARGET,
             maxMembers: MEMBERS,
@@ -428,6 +430,7 @@ contract NectarPoolTest is Test {
         )
     {
         (
+            string memory _name, // name (unused in test assertions)
             address t,
             uint256 ta,
             uint16 mm,
@@ -473,11 +476,11 @@ contract NectarPoolTest is Test {
     function test_EndSavingsPhase_RevertsBeforeTime() public {
         NectarPool pool = _createWeeklyPool();
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(carol);
-        pool.joinPool();
+        pool.joinPool(0);
 
         // Warp to just past the enrollment window (saving period is 10 weeks),
         // but NOT past savingEndTime — expect "saving period not over"
@@ -490,11 +493,11 @@ contract NectarPoolTest is Test {
         NectarPool pool = _createWeeklyPool();
         // Fill the pool and advance to YIELDING
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(carol);
-        pool.joinPool();
+        pool.joinPool(0);
         _payAllCycles(pool, alice, 200e18, 10);
         _payAllCycles(pool, bob, 200e18, 10);
         _payAllCycles(pool, carol, 200e18, 10);
@@ -521,7 +524,7 @@ contract NectarPoolTest is Test {
         // Fill all 6 slots
         for (uint256 i = 0; i < members2.length; i++) {
             vm.prank(members2[i]);
-            pool.joinPool();
+            pool.joinPool(0);
         }
         assertEq(pool.activeMembers(), 6);
 
@@ -533,7 +536,7 @@ contract NectarPoolTest is Test {
 
         vm.prank(frank);
         vm.expectRevert("NectarPool: pool is full");
-        pool.joinPool();
+        pool.joinPool(0);
     }
 
     // ─── 10. Lazy Eviction Tests ──────────────────────────────────────────────
@@ -542,7 +545,7 @@ contract NectarPoolTest is Test {
         NectarPool pool = _createWeeklyPool();
 
         vm.prank(alice);
-        pool.joinPool(); // pays cycle 1, lastPaidCycle=1
+        pool.joinPool(0); // pays cycle 1, lastPaidCycle=1
 
         // Warp past cycle 4 (missed cycles 2 and 3 consecutively — gap=3)
         // gap = 4 - 1 = 3 > 2 → eviction threshold met
@@ -562,7 +565,7 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18;
 
         vm.prank(alice);
-        pool.joinPool(); // totalPaid = 200e18
+        pool.joinPool(0); // totalPaid = 200e18
 
         // Miss cycles 2 and 3 (gap = 3 cycles → eviction)
         vm.warp(pool.poolStartTime() + 3 * WEEKLY + 1);
@@ -584,11 +587,11 @@ contract NectarPoolTest is Test {
 
         // 3 members join and pay all cycles
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(carol);
-        pool.joinPool();
+        pool.joinPool(0);
         _payAllCycles(pool, alice, rate, 10);
         _payAllCycles(pool, bob, rate, 10);
         _payAllCycles(pool, carol, rate, 10);
@@ -634,11 +637,11 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18;
 
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(carol);
-        pool.joinPool();
+        pool.joinPool(0);
         _payAllCycles(pool, alice, rate, 10);
         _payAllCycles(pool, bob, rate, 10);
         _payAllCycles(pool, carol, rate, 10);
@@ -672,11 +675,11 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18;
 
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(carol);
-        pool.joinPool();
+        pool.joinPool(0);
         _payAllCycles(pool, alice, rate, 10);
         _payAllCycles(pool, bob, rate, 10);
         _payAllCycles(pool, carol, rate, 10);
@@ -706,11 +709,11 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18;
 
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(carol);
-        pool.joinPool();
+        pool.joinPool(0);
         _payAllCycles(pool, alice, rate, 10);
         _payAllCycles(pool, bob, rate, 10);
         _payAllCycles(pool, carol, rate, 10);
@@ -736,7 +739,7 @@ contract NectarPoolTest is Test {
     function test_Claim_RevertsIfNotSettled() public {
         NectarPool pool = _createWeeklyPool();
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
 
         vm.prank(alice);
         vm.expectRevert("NectarPool: wrong phase");
@@ -748,11 +751,11 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18;
 
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(carol);
-        pool.joinPool();
+        pool.joinPool(0);
         _payAllCycles(pool, alice, rate, 10);
         _payAllCycles(pool, bob, rate, 10);
         _payAllCycles(pool, carol, rate, 10);
@@ -775,11 +778,11 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18;
 
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(carol);
-        pool.joinPool();
+        pool.joinPool(0);
         _payAllCycles(pool, alice, rate, 10);
         _payAllCycles(pool, bob, rate, 10);
         _payAllCycles(pool, carol, rate, 10);
@@ -807,9 +810,9 @@ contract NectarPoolTest is Test {
 
         // Only 2 join (below 50% of 6 = 3 minimum)
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
 
         vm.warp(pool.poolStartTime() + 10 * WEEKLY + 1);
         pool.endSavingsPhase(); // Should cancel
@@ -824,9 +827,9 @@ contract NectarPoolTest is Test {
         uint256 rate = 200e18;
 
         vm.prank(alice);
-        pool.joinPool();
+        pool.joinPool(0);
         vm.prank(bob);
-        pool.joinPool();
+        pool.joinPool(0);
 
         vm.warp(pool.poolStartTime() + 10 * WEEKLY + 1);
         pool.endSavingsPhase();

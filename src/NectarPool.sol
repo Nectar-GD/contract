@@ -101,7 +101,7 @@ contract NectarPool is INectarPool, ReentrancyGuard {
     // ─── Join Pool ────────────────────────────────────────────────────────────
 
     /// @notice Any eligible wallet can join and makes their first deposit immediately.
-    function joinPool() external override nonReentrant onlyState(PoolState.ENROLLMENT) {
+    function joinPool(uint256 maxRate) external override nonReentrant onlyState(PoolState.ENROLLMENT) {
         require(!isMember[msg.sender], "NectarPool: already a member");
         require(activeMembers < config.maxMembers, "NectarPool: pool is full");
 
@@ -129,6 +129,7 @@ contract NectarPool is INectarPool, ReentrancyGuard {
         uint256 joinRate = NectarMath.lateJoinerRate(perMember, remaining);
 
         require(NectarMath.isWithinTwoXCap(joinRate, baseRate), "NectarPool: rate exceeds 2x cap");
+        require(maxRate == 0 || joinRate <= maxRate, "NectarPool: rate exceeds maxRate");
 
         // ── Register member ─────────────────────────────────────────────────
         isMember[msg.sender] = true;
@@ -313,7 +314,8 @@ contract NectarPool is INectarPool, ReentrancyGuard {
 
     // ─── Claim ────────────────────────────────────────────────────────────────
 
-    function claim() external override nonReentrant onlyState(PoolState.SETTLED) {
+    function claim() external override nonReentrant {
+        require(state == PoolState.SETTLED || state == PoolState.CANCELLED, "NectarPool: wrong phase");
         uint256 amount = claimable[msg.sender];
         require(amount > 0, "NectarPool: nothing to claim");
         claimable[msg.sender] = 0;

@@ -90,6 +90,7 @@ contract NectarVaultTest is Test {
     /// @dev Create a pool using USDC as the deposit token
     function _createUSDCPool() internal returns (NectarPool pool) {
         INectarPool.PoolConfig memory cfg = INectarPool.PoolConfig({
+            name: "USDC Vault Test Pool",
             token: address(usdc),
             targetAmount: TARGET,
             maxMembers: MEMBERS,
@@ -115,6 +116,7 @@ contract NectarVaultTest is Test {
     /// @dev Create a pool using G$ as the deposit token
     function _createGDollarPool() internal returns (NectarPool pool) {
         INectarPool.PoolConfig memory cfg = INectarPool.PoolConfig({
+            name: "GDollar Vault Test Pool",
             token: address(gdollar),
             targetAmount: TARGET,
             maxMembers: MEMBERS,
